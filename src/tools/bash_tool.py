@@ -1,14 +1,5 @@
+from agents import function_tool
 import asyncio
-from agents import Agent, Runner, set_default_openai_client, set_default_openai_key, set_default_openai_api
-from openai import AsyncOpenAI
-from agents import function_tool, set_tracing_disabled
-
-
-openaiClient = AsyncOpenAI()
-set_default_openai_client(openaiClient)
-set_default_openai_api("chat_completions")
-set_tracing_disabled(True)
-
 
 @function_tool
 async def bash(shell_command: str, timeout: int) -> str:
@@ -57,28 +48,3 @@ Examples:
         return error_msg
 
     return f"The Command `{shell_command}` exectued successfully.\nThe StdOut:\n{stdout_text}\n\nThe StdErr:\n{stderr_text}\n"
-
-async def main():
-    agent = Agent(
-        name="Assistant",
-        model="gpt-5.1",
-        instructions="你是人工智能助手，具有一系列工具可以与外界进行交互，来帮助用户执行任务。",
-        tools=[bash]
-    )
-    messages = []
-    while True:
-        user_input = input("You:")
-        messages.append({
-            "role": "user",
-            "content": user_input
-        })
-        result = await Runner.run(agent, messages)
-        last_result_content = result.final_output
-        print(last_result_content)
-        last_messages = result.to_input_list()
-        messages = last_messages
-
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
