@@ -1,65 +1,232 @@
-# 基于 OpenAI Agents SDK 搭建的 Mini Agent
+# OpenAI-Based Agent - AI 编码助手
 
-这是一个使用 **OpenAI Agents SDK** 搭建的最小可用（Mini）智能体项目。
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org)
+[![OpenAI Agents SDK](https://img.shields.io/badge/OpenAI_Agents_SDK-0.6.3-green.svg)](https://github.com/openai/openai-agents-python)
 
-> ⚠️ 提示：`src/system_prompt.md` 不会提交到 Git，需在本地自行创建，否则无法正常运行。
+一个基于 **OpenAI Agents SDK** 构建的智能编码助手，提供交互式 CLI 界面，能够执行文件操作、代码搜索和系统命令。
 
-## 快速开始
+## ✨ 功能特性
+
+- **🛠️ 全能文件操作**: 支持读取、写入、编辑文件
+- **🔍 智能代码搜索**: 支持 grep 搜索和 glob 文件匹配
+- **💻 安全命令执行**: 在沙盒环境中执行 shell 命令
+- **🧠 推理思考**: 提供思考工具用于复杂任务分析
+- **💬 交互式对话**: 支持多轮对话，保持上下文
+- **🎨 彩色终端**: 友好的终端 UI，带颜色标识
+
+## 📋 工具集
+
+| 工具 | 功能描述 | 安全限制 |
+|------|----------|----------|
+| `bash` | 执行 shell 命令 | 默认在当前工作目录执行 |
+| `read_file` | 读取文件内容 | 支持指定读取范围和编码 |
+| `write_file` | 创建/覆盖写入文件 | 自动创建缺失的目录 |
+| `edit_file` | 增量编辑文件 | 精确替换，避免覆盖丢失 |
+| `grep` | 正则搜索文件内容 | 排除二进制文件和常见缓存目录 |
+| `glob` | 按模式查找文件 | 支持递归搜索和通配符 |
+| `think` | 记录内部推理 | 无副作用，仅用于调试 |
+
+## 🚀 快速开始
+
+### 环境要求
+
+- Python 3.12+
+- OpenAI API Key 或 Azure OpenAI 配置
+
+### 安装依赖
 
 ```bash
-git clone <your-repo-url>.git
-cd OpenAI-Based-Agent
-
-# 安装依赖（示例：使用 uv）
+# 使用 uv (推荐)
 uv sync
+
 # 或使用 pip
-# pip install -e .
+pip install -e .
 ```
 
-## 必要配置
+### 配置 API
 
-1. **创建 `src/system_prompt.md`**（示例内容，自行按需修改）：
+**方式一：环境变量 (推荐)**
 
-   ```bash
-   cat > src/system_prompt.md << 'EOF'
-   You are an AI coding assistant running in a CLI environment.
+```bash
+# 对于标准 OpenAI
+export OPENAI_BASE_URL="https://api.openai.com/v1/"
+export OPENAI_API_KEY="your-api-key-here"
 
-   Your working directory is: {work_dir}
+# 或者对于 Azure OpenAI
+export OPENAI_BASE_URL="https://your-resource.openai.azure.com/openai/v1/"
+export OPENAI_API_KEY="your-azure-key"
 
-   # Abilities
-   - You can run bash commands.
-   - You can read, write and edit files within the working directory.
+# 追踪密钥（如有需要）
+export OPENAI_API_KEY="your-api-key"  # 用于主 API
+```
 
-   # Safety
-   - Never operate outside of {work_dir}.
-   - Always read a file before editing it.
+**方式二：修改代码**
 
-   EOF
-   ```
+在 `src/cli.py` 中找到以下代码并修改：
 
-2. **配置 OpenAI / Azure OpenAI**（建议改成环境变量）：
+```python
+openaiClient = AsyncOpenAI(
+    base_url=os.environ["KK_OPENAI_BASE_URL"],  # 修改为你的配置
+    api_key=os.environ["KK_OPENAI_API_KEY"],
+)
+```
 
-   ```bash
-   export OPENAI_BASE_URL="https://<your-endpoint>.openai.azure.com/openai/v1/"
-   export OPENAI_API_KEY="<your-api-key>"
-   ```
+### 创建系统提示词
 
-   并在 `src/cli.py` 中改为类似：
+创建 `src/system_prompt.md` 文件（**必填**，不会提交到 Git）：
 
-   ```python
-   import os
-   from openai import AsyncOpenAI
+```bash
+# 使用模板创建
+cat > src/system_prompt.md << 'EOF'
+你是一个在 CLI 环境中运行的 AI 编码助手。
 
-   openaiClient = AsyncOpenAI(
-       base_url=os.environ["OPENAI_BASE_URL"],
-       api_key=os.environ["OPENAI_API_KEY"],
-   )
-   ```
+当前工作目录: {work_dir}
 
-## 运行
+# 核心能力
+- 你可以执行 bash 命令来完成各种任务
+- 你可以读取工作目录下的任何文件
+- 你可以写入和创建新文件
+- 你可以精确编辑现有文件内容
+- 你可以搜索文件内容和查找文件路径
+- 你可以记录思考过程用于复杂问题分析
+
+# 安全准则
+- 永远不要在工作目录之外操作文件
+- 编辑文件前必须先读取内容
+- 执行危险操作前请先确认
+- 保持输出简洁但信息完整
+
+# 工作流程建议
+1. 先思考任务目标和实施方案
+2. 使用 grep/glob 查找相关文件
+3. 阅读重要文件的内容
+4. 执行必要的操作（编辑/创建等）
+5. 验证结果
+
+EOF
+```
+
+## 🏃 使用方法
+
+### 启动助手
 
 ```bash
 python -m src.cli
 ```
 
-启动后会进入交互式 CLI：在 `You:` 后输入指令即可让 Agent 使用 bash / read_file / write_file / edit_file 等工具操作当前项目。
+### 交互式界面
+
+启动后会看到如下界面：
+
+```
+⚙ System  已进入交互模式
+   工作目录: /path/to/your/project
+   提示：输入问题后回车，与 🤖 Assistant 对话；按 Ctrl+C 退出。
+
+👤 You ➤ 
+```
+
+### 使用示例
+
+```
+👤 You ➤ 请帮我分析项目结构
+🤖 Assistant 正在思考，请稍候...
+
+🤖 Assistant:
+------------------------------------------------------------
+让我帮您分析项目结构...
+[助手会使用 bash 和 glob 工具执行任务]
+------------------------------------------------------------
+
+👤 You ➤ 请在 src/ 目录下查找所有 Python 文件
+🤖 Assistant 正在思考，请稍候...
+
+🤖 Assistant:
+------------------------------------------------------------
+找到了以下 Python 文件:
+- src/cli.py
+- src/tools/bash_tool.py
+- src/tools/read_file_tool.py
+...
+------------------------------------------------------------
+```
+
+### 典型任务示例
+
+1. **代码分析**
+   ```
+   请分析一下 src/cli.py 的主要功能
+   ```
+
+2. **批量编辑**
+   ```
+   请给所有 Python 文件添加 copyright 头部
+   ```
+
+3. **调试辅助**
+   ```
+   运行 pytest 并分析错误信息
+   ```
+
+4. **搜索替换**
+   ```
+   找到所有使用 os.environ 的地方，并改为使用 dotenv
+   ```
+
+## ⚙️ 配置说明
+
+### 关键环境变量
+
+| 变量名 | 说明 | 是否必填 |
+|--------|------|----------|
+| `KK_OPENAI_BASE_URL` | OpenAI API 地址 | ✅ |
+| `KK_OPENAI_API_KEY` | API Key | ✅ |
+| `KK_OPENAI_TRACE_KEY` | 追踪密钥 | ❌ |
+
+### 自定义配置
+
+如果你需要修改模型或其他参数，在 `src/cli.py` 中：
+
+```python
+agent = Agent(
+    name="OAI-Based CodeAgent",
+    model="mimo-v2-flash",  # 可以修改为其他模型
+    instructions=system_prompt,
+    tools=[bash, read_file, write_file, edit_file, grep, glob, think]
+)
+```
+
+## 🔒 安全机制
+
+1. **工作目录限制**: 所有操作被限制在当前工作目录内
+2. **读取优先**: 编辑文件前必须先读取，避免误操作
+3. **文件类型过滤**: 搜索时自动排除二进制文件和缓存目录
+4. **精确编辑**: edit_file 使用字符串精确匹配，避免大面积意外修改
+5. **手动确认**: 执行潜在破坏性操作时会等待确认
+
+## 🐛 常见问题
+
+**Q: 启动时报 `FileNotFoundError: src/system_prompt.md`**
+- A: 请确保已创建 `src/system_prompt.md` 文件，参见上方的创建步骤。
+
+**Q: 环境变量未生效**
+- A: 检查 `cli.py` 第26-27行是否使用了正确的环境变量名。
+
+**Q: 某些工具不可用**
+- A: 确认已安装所有依赖：`pip list | grep openai-agents`
+
+## 🤝 贡献指南
+
+1. Fork 本仓库
+2. 创建特性分支: `git checkout -b feature/amazing-feature`
+3. 提交更改: `git commit -m 'Add amazing feature'`
+4. 推送分支: `git push origin feature/amazing-feature`
+5. 提交 Pull Request
+
+## 📄 许可证
+
+本项目采用 [MIT License](LICENSE) 协议开源。
+
+---
+
+*基于 OpenAI Agents SDK 构建 | Powered by OpenAI Agents SDK*
