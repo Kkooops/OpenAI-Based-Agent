@@ -31,7 +31,6 @@ def _write_file(file_path: str, content: str) -> str:
     return f"write to `{file_path}` successfully."
 
 
-ROOT = Path.cwd().resolve()
 
 
 @function_tool
@@ -42,6 +41,8 @@ async def write_file(file_path: str, content: str) -> str:
         return "Error: file_path must be an absolute path"
 
     path = Path(file_path).resolve()
+    ROOT = Path.cwd().resolve()
+
     if ROOT not in path.parents and path != ROOT:
         return (
             "Error: file_path must be inside the workspace root directory. "

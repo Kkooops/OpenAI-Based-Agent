@@ -18,7 +18,7 @@ SYSTEM_PREFIX = f"{Fore.MAGENTA}⚙ System{Style.RESET_ALL}"
 ERROR_PREFIX = f"{Fore.RED}❌ Error{Style.RESET_ALL}"
 
 # 输入提示符（放在同一行，方便用户输入）
-INPUT_PROMPT = f"{USER_PREFIX}{Fore.CYAN} › {Style.RESET_ALL}"
+INPUT_PROMPT = f"{USER_PREFIX}{Fore.CYAN} ➤ {Style.RESET_ALL}"
 
 import os
 
@@ -28,7 +28,8 @@ openaiClient = AsyncOpenAI(
 )
 set_default_openai_client(openaiClient)
 set_default_openai_api("chat_completions")
-set_tracing_disabled(True)
+# set_tracing_disabled(True)
+set_default_openai_key(os.environ["KK_OPENAI_TRACE_KEY"])
 
 
 async def cli(work_dir=None):
@@ -52,14 +53,15 @@ async def cli(work_dir=None):
     system_prompt = system_prompt.replace('{work_dir}', str(work_dir))
 
     agent = Agent(
-        name="Assistant",
-        model="gpt-5.1",
+        name="OAI-Based CodeAgent",
+        model="mimo-v2-flash",
         instructions=system_prompt,
         tools=[
             bash,
             read_file,
             write_file,
-            edit_file
+            edit_file,
+            grep, glob
         ]
     )
     import sys
@@ -86,7 +88,7 @@ async def cli(work_dir=None):
             # ② 调用模型
             print(f"\n{ASSISTANT_PREFIX} 正在思考，请稍候...\n")
 
-            result = await Runner.run(agent, messages)
+            result = await Runner.run(agent, messages, max_turns=100)
             last_result_content = result.final_output
 
             # ③ 美化后的模型输出
