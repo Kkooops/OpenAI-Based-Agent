@@ -5,9 +5,14 @@ from pathlib import Path
 
 
 def _write_file(file_path: str, content: str) -> str:
-    """
-    :param file_path: 文件绝对路径
-    :param content: 写入内容
+    """Write content to a file, creating parent directories if needed.
+
+    Args:
+        file_path: Absolute path to the file to write.
+        content: File content to write (overwrites existing file).
+
+    Returns:
+        Success message or an error string.
     """
     path = Path(file_path)
     parent = path.parent
@@ -35,7 +40,21 @@ def _write_file(file_path: str, content: str) -> str:
 
 @function_tool
 async def write_file(file_path: str, content: str) -> str:
-    """写入文件，这个工具会把写入文件进行覆盖，当使用编辑文件时不要调用这个工具
+    """Write a file by overwriting its entire contents.
+
+    Use this tool when you want to create a new file or fully replace an existing file.
+    For incremental edits, prefer `edit_file` to avoid accidentally losing content.
+
+    Notes:
+        - `file_path` must be an absolute path inside the workspace root.
+        - Parent directories are created automatically if they do not exist.
+
+    Args:
+        file_path: Absolute path to the file inside the workspace.
+        content: Full file content to write (overwrites existing file).
+
+    Returns:
+        A success message, or an error string.
     """
     if not os.path.isabs(file_path):
         return "Error: file_path must be an absolute path"

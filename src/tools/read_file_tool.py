@@ -5,7 +5,17 @@ from pathlib import Path
 
 
 def _read_from_file(file_path: str, start_line: int, limit: int | None) -> str:
-    """Synchronous helper that actually reads the file contents."""
+    """Read file contents synchronously and format with line numbers.
+
+    Args:
+        file_path: Absolute file path.
+        start_line: 1-based start line number.
+        limit: Optional max number of lines to read; `None` means read to EOF.
+
+    Returns:
+        Formatted text where each line is prefixed with a right-aligned line number
+        in 6 columns, followed by `|` (e.g., `     1|line`), or an error string.
+    """
     path = Path(file_path)
     if not path.exists():
         return f"Error: file does not exist: {file_path}"
@@ -48,9 +58,20 @@ def _read_from_file(file_path: str, start_line: int, limit: int | None) -> str:
 
 @function_tool
 async def read_file(file_path: str, start_line: int, limit: int | None = None) -> str:
-    """Read part of a file using an absolute path, starting line, and optional line limit.
+    """Read a slice of a text file (for code/context lookup).
 
-    Output format: line number right-aligned in 6 columns, then `|`, then content (e.g., `     1|line`).
+    Notes:
+        - `file_path` must be an absolute path inside the workspace root.
+        - `start_line` is 1-based.
+        - Output lines are prefixed as `     1|content` to make patching easier.
+
+    Args:
+        file_path: Absolute path to a file inside the workspace.
+        start_line: 1-based start line number.
+        limit: Optional max number of lines; `None` means read to EOF.
+
+    Returns:
+        The formatted file slice, or an error string.
     """
     if not os.path.isabs(file_path):
         return "Error: file_path must be an absolute path"

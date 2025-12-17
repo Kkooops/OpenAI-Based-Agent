@@ -239,16 +239,30 @@ async def grep(
     max_results: int = 200,
     max_file_size_kb: int = 2048,
 ) -> str:
-    """在目录内按正则搜索文件内容（输出匹配行，类似 grep）。
+    """Search file contents under a directory using regular expressions (grep-like).
 
-    - `patterns`：单个字符串；多个正则用换行分隔（不要用逗号分隔，避免影响正则本身）。
-    - `root_dir`：搜索根目录；为空默认当前工作目录；必须是 workspace 内的绝对路径。
-    - `include_globs`：可选文件过滤（如 `*.py`、`src/*`）；多个值用逗号或换行分隔。
-    - `exclude_dirs`：可选排除目录名（如 `node_modules,.git`）；多个值用逗号或换行分隔。
-    - `exclude_globs`：可选排除文件 glob（如 `*.lock,dist/*`）；多个值用逗号或换行分隔。
-    - `case_sensitive`：是否大小写敏感；`max_results`/`max_file_size_kb` 用于限制输出与扫描成本。
+    Notes:
+        - `patterns` is a single string; provide multiple regex patterns separated by newlines.
+          Avoid comma-separated patterns to prevent breaking valid regex syntax.
+        - `root_dir` defaults to the current working directory and must be an absolute path
+          inside the workspace root.
+        - `include_globs` / `exclude_dirs` / `exclude_globs` are optional filters; provide
+          multiple values separated by commas or newlines.
+        - The scan skips common generated/vendor directories and common binary file types.
 
-    输出：`/abs/path/to/file:line: [pattern] content`
+    Args:
+        patterns: One or more regex patterns (newline-separated).
+        root_dir: Absolute directory to search under (defaults to workspace root).
+        include_globs: Optional file include glob(s), e.g. `*.py,src/*`.
+        exclude_dirs: Optional directory name(s) to skip, e.g. `node_modules,.git`.
+        exclude_globs: Optional file exclude glob(s), e.g. `*.lock,dist/*`.
+        case_sensitive: Whether regex matching is case-sensitive.
+        max_results: Max number of matching lines to return.
+        max_file_size_kb: Max file size to scan (in KB).
+
+    Returns:
+        A summary line followed by matches in the format:
+        `/abs/path/to/file:line: [pattern] content`, or an error string.
     """
     patterns_list = _clean_split_str(patterns, split_commas=False)
     if not patterns_list:
@@ -308,15 +322,23 @@ async def glob(
     path: str | None = None,
     max_results: int = 500,
 ) -> str:
-    """按 glob 模式查找文件路径（只匹配文件，不返回目录）。
+    """Find files under a directory using a glob pattern (file paths only).
 
-    - `pattern` 支持 `*`/`?`/`**` 等通配符；包含路径分隔符时匹配相对路径，否则仅匹配文件名。
-    - `path` 可选，指定搜索起点目录（必须是 workspace 内的绝对路径），默认当前工作目录。
-    - 输出：每行一个匹配文件的绝对路径（含汇总行）。
+    Notes:
+        - `pattern` supports `*` / `?` / `**`.
+        - If `pattern` contains a path separator (`/`), it is treated as a path pattern
+          relative to `path` (e.g. `src/**/*.jsx`).
+        - If `pattern` does not contain a path separator, it is applied recursively as a
+          filename/pattern match (e.g. `*.py`).
+        - Default exclude dirs (e.g. `.git`, `node_modules`) are skipped.
 
-    示例：
-    - `pattern="**/*.ts"`：查找所有 `.ts` 文件
-    - `pattern="src/**/*.jsx"`：查找 `src` 下所有 `.jsx` 文件
+    Args:
+        pattern: Glob pattern, e.g. `**/*.ts` or `src/**/*.jsx`.
+        path: Absolute directory to search under (defaults to current working directory).
+        max_results: Max number of file paths to return.
+
+    Returns:
+        A summary line followed by one absolute file path per line, or an error string.
     """
     if not isinstance(pattern, str) or not pattern.strip():
         return "Error: pattern must be a non-empty string"
