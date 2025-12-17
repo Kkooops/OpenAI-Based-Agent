@@ -5,10 +5,18 @@ from pathlib import Path
 
 
 def _edit_file(file_path: str, old_content: str, new_content: str) -> str:
-    """
-    :param file_path: 文件绝对路径
-    :param old_content: 旧字符串（待替换内容）
-    :param new_content: 新字符串
+    """Replace a unique substring in a file (synchronous helper).
+
+    This helper performs a single, exact string replacement. It requires `old_content`
+    to appear exactly once to avoid unintended edits.
+
+    Args:
+        file_path: Absolute path to the target file.
+        old_content: Exact substring to be replaced (must be unique within the file).
+        new_content: Replacement substring.
+
+    Returns:
+        Success message or an error string.
     """
     path = Path(file_path)
     if not path.exists():
@@ -40,10 +48,23 @@ def _edit_file(file_path: str, old_content: str, new_content: str) -> str:
 
 @function_tool
 async def edit_file(file_path: str, old_content: str, new_content: str) -> str:
-    """
-    编辑文件，用于Update文件内容时调用，注意和write_file进行区分，edit_file是在已有文件中进行内容替换完成更新
-    old_content是待替换的字符串，这里必须保证old_content是文件中唯一的内容。
-    new_content是替换后的字符串
+    """Update an existing file by replacing a unique substring.
+
+    Use this tool to modify an existing file without overwriting the whole file.
+    `old_content` must match exactly and must be unique in the file, otherwise the
+    tool will refuse to apply the change.
+
+    Notes:
+        - `file_path` must be an absolute path inside the workspace root.
+        - This tool performs a single replacement (first occurrence) after uniqueness check.
+
+    Args:
+        file_path: Absolute path to a file inside the workspace.
+        old_content: Exact substring to replace (must be unique in the file).
+        new_content: Replacement substring.
+
+    Returns:
+        A success message, or an error string.
     """
     if not os.path.isabs(file_path):
         return "Error: file_path must be an absolute path"

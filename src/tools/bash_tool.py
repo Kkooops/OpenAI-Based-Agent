@@ -3,24 +3,23 @@ import asyncio
 
 @function_tool
 async def bash(shell_command: str, timeout: int) -> str:
-    """Execute bash commands in foreground or background.
-For terminal operations like git, npm, docker, etc. DO NOT use for file operations - use specialized tools.
+    """Run a shell command and return stdout/stderr.
 
-Parameters:
-  - command (required): Bash command to execute
-  - timeout (optional): Timeout in seconds (default: 120, max: 600) for foreground commands
-  - run_in_background (optional): Set true for long-running commands (servers, etc.)
+    Use this tool for command-line operations (e.g. `git`, `python`, `pytest`).
+    For reading/writing/editing files, prefer dedicated file tools.
+    For searching content or finding files, prefer dedicated `grep` or `glob` tools.
 
-Tips:
-  - Quote file paths with spaces: cd "My Documents"
-  - Chain dependent commands with &&: git add . && git commit -m "msg"
-  - Use absolute paths instead of cd when possible
-  - For background commands, monitor with bash_output and terminate with bash_kill
+    Args:
+        shell_command: Command string to execute in a shell.
+        timeout: Timeout in seconds for the command execution.
 
-Examples:
-  - git status
-  - npm test
-  - python3 -m http.server 8080 (with run_in_background=true)"""
+    Returns:
+        A success message including stdout/stderr, or an error string.
+
+    Examples:
+        - `git status`
+        - `python -m py_compile src/main.py`
+    """
     process = await asyncio.create_subprocess_shell(
             shell_command,
             stdout=asyncio.subprocess.PIPE,

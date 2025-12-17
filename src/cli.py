@@ -61,7 +61,8 @@ async def cli(work_dir=None):
             read_file,
             write_file,
             edit_file,
-            grep, glob
+            grep, glob,
+            think
         ]
     )
     import sys
