@@ -1,7 +1,17 @@
 import asyncio
-from agents import Agent, Runner, set_default_openai_client, set_default_openai_key, set_default_openai_api
+import json
+import re
+from agents import (
+    Agent,
+    Runner,
+    set_default_openai_client,
+    set_default_openai_key,
+    set_default_openai_api,
+    RawResponsesStreamEvent,
+    RunItemStreamEvent,
+)
 from openai import AsyncOpenAI
-from agents import set_tracing_disabled
+from agents import set_tracing_disabled, ModelSettings
 from tools import *
 from pathlib import Path
 
@@ -16,6 +26,7 @@ USER_PREFIX = f"{Fore.CYAN}👤 You{Style.RESET_ALL}"
 ASSISTANT_PREFIX = f"{Fore.GREEN}🤖 Assistant{Style.RESET_ALL}"
 SYSTEM_PREFIX = f"{Fore.MAGENTA}⚙ System{Style.RESET_ALL}"
 ERROR_PREFIX = f"{Fore.RED}❌ Error{Style.RESET_ALL}"
+TOOL_PREFIX = f"{Fore.YELLOW}🛠 Tool{Style.RESET_ALL}"
 
 # 输入提示符（放在同一行，方便用户输入）
 INPUT_PROMPT = f"{USER_PREFIX}{Fore.CYAN} ➤ {Style.RESET_ALL}"
@@ -23,14 +34,17 @@ INPUT_PROMPT = f"{USER_PREFIX}{Fore.CYAN} ➤ {Style.RESET_ALL}"
 import os
 
 openaiClient = AsyncOpenAI(
-    base_url=os.environ["KK_OPENAI_BASE_URL"],
-    api_key=os.environ["KK_OPENAI_API_KEY"],
+    base_url="https://api.gptbest.vip/v1",
+    api_key="sk-LWN1lU2Qg4spKQPmQWg1kKHTX9tgNSY2qhgAfsZM9wH1Re9u",
 )
 set_default_openai_client(openaiClient)
 set_default_openai_api("chat_completions")
 # set_tracing_disabled(True)
 set_default_openai_key(os.environ["KK_OPENAI_TRACE_KEY"])
 
+def visible_len(s):
+    ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+    return len(ansi_escape.sub('', s))
 
 async def cli(work_dir=None):
     if work_dir is None:
@@ -54,8 +68,12 @@ async def cli(work_dir=None):
 
     agent = Agent(
         name="OAI-Based CodeAgent",
-        model="mimo-v2-flash",
+        model="gemini-3-flash-preview",
         instructions=system_prompt,
+        model_settings=ModelSettings(
+            reasoning={"effort": "low"},
+            parallel_tool_calls=False
+        ),
         tools=[
             bash,
             read_file,
@@ -68,6 +86,7 @@ async def cli(work_dir=None):
     import sys
 
     messages = []
+    BOX_WIDTH = 80
 
     while True:
         try:
@@ -89,13 +108,69 @@ async def cli(work_dir=None):
             # ② 调用模型
             print(f"\n{ASSISTANT_PREFIX} 正在思考，请稍候...\n")
 
-            result = await Runner.run(agent, messages, max_turns=100)
-            last_result_content = result.final_output
-
             # ③ 美化后的模型输出
             print(f"{ASSISTANT_PREFIX}:\n{Fore.GREEN}{'-' * 60}{Style.RESET_ALL}")
-            print(last_result_content)
-            print(f"{Fore.GREEN}{'-' * 60}{Style.RESET_ALL}\n")
+
+            result = Runner.run_streamed(agent, messages, max_turns=80)
+
+            async for event in result.stream_events():
+                if isinstance(event, RawResponsesStreamEvent):
+                    if event.data.type == "response.output_text.delta":
+                        print(event.data.delta, end="", flush=True)
+                    elif event.data.type == "response.refusal.delta":
+                        print(event.data.delta, end="", flush=True)
+                elif isinstance(event, RunItemStreamEvent):
+                    if event.item.type == "tool_call_item":
+                         tool_name = event.item.raw_item.name
+                         tool_args = getattr(event.item.raw_item, "arguments", "")
+                         
+                         # 打印工具调用边框
+                         print(f"\n{Fore.YELLOW}╭{'─' * (BOX_WIDTH - 2)}╮{Style.RESET_ALL}")
+                         
+                         # Tool Name Line
+                         header_content = f" {TOOL_PREFIX}: {Fore.GREEN}{tool_name}{Style.RESET_ALL}"
+                         padding = BOX_WIDTH - 2 - visible_len(header_content)
+                         if padding < 0: padding = 0
+                         print(f"{Fore.YELLOW}│{Style.RESET_ALL}{header_content}{' ' * padding}{Fore.YELLOW}│{Style.RESET_ALL}")
+                         
+                         try:
+                             args_dict = json.loads(tool_args)
+                             if isinstance(args_dict, dict):
+                                 for k, v in args_dict.items():
+                                     # Truncate value to fit in box
+                                     # Available width: BOX_WIDTH - 2 (borders) - 3 (indent) - len(k) - 2 (": ")
+                                     max_val_len = BOX_WIDTH - 7 - len(k)
+                                     val_str = str(v).replace('\n', '\\n')
+                                     if len(val_str) > max_val_len:
+                                         val_str = val_str[:max_val_len-3] + "..."
+                                     
+                                     line_content = f"   {Fore.CYAN}{k}{Style.RESET_ALL}: {Fore.WHITE}{val_str}{Style.RESET_ALL}"
+                                     padding = BOX_WIDTH - 2 - visible_len(line_content)
+                                     if padding < 0: padding = 0
+                                     print(f"{Fore.YELLOW}│{Style.RESET_ALL}{line_content}{' ' * padding}{Fore.YELLOW}│{Style.RESET_ALL}")
+                             else:
+                                 # Fallback for non-dict JSON
+                                 val_str = str(tool_args).replace('\n', '\\n')
+                                 max_len = BOX_WIDTH - 5
+                                 if len(val_str) > max_len: val_str = val_str[:max_len-3] + "..."
+                                 line_content = f"   {Fore.WHITE}{val_str}{Style.RESET_ALL}"
+                                 padding = BOX_WIDTH - 2 - visible_len(line_content)
+                                 if padding < 0: padding = 0
+                                 print(f"{Fore.YELLOW}│{Style.RESET_ALL}{line_content}{' ' * padding}{Fore.YELLOW}│{Style.RESET_ALL}")
+
+                         except:
+                             if tool_args:
+                                 val_str = str(tool_args).replace('\n', '\\n')
+                                 max_len = BOX_WIDTH - 5
+                                 if len(val_str) > max_len: val_str = val_str[:max_len-3] + "..."
+                                 line_content = f"   {Fore.WHITE}{val_str}{Style.RESET_ALL}"
+                                 padding = BOX_WIDTH - 2 - visible_len(line_content)
+                                 if padding < 0: padding = 0
+                                 print(f"{Fore.YELLOW}│{Style.RESET_ALL}{line_content}{' ' * padding}{Fore.YELLOW}│{Style.RESET_ALL}")
+                         
+                         print(f"{Fore.YELLOW}╰{'─' * (BOX_WIDTH - 2)}╯{Style.RESET_ALL}")
+
+            print(f"\n{Fore.GREEN}{'-' * 60}{Style.RESET_ALL}\n")
 
             last_messages = result.to_input_list()
             messages = last_messages

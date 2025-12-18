@@ -59,6 +59,7 @@ def _read_from_file(file_path: str, start_line: int, limit: int | None) -> str:
 @function_tool
 async def read_file(file_path: str, start_line: int, limit: int | None = None) -> str:
     """Read a slice of a text file (for code/context lookup).
+    **Important**: Must Not invoke parallelly like `{"file_path":"xx","start_line":1}{"file_path":"xxxx","start_line":1}{"file_path":"xxxx","start_line":1}`
 
     Notes:
         - `file_path` must be an absolute path inside the workspace root.

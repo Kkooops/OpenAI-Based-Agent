@@ -31,7 +31,7 @@ def _edit_file(file_path: str, old_content: str, new_content: str) -> str:
 
     count = content.count(old_content)
     if count == 0:
-        return "Error: old_content not found in file"
+        return "Error: old_content not found in file. Please read the file first."
     if count > 1:
         return "Error: old_content is not unique in file, please change `old_content` input argument to Guaranteed to be unique."
 
