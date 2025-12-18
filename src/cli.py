@@ -34,8 +34,8 @@ INPUT_PROMPT = f"{USER_PREFIX}{Fore.CYAN} ➤ {Style.RESET_ALL}"
 import os
 
 openaiClient = AsyncOpenAI(
-    base_url="https://api.gptbest.vip/v1",
-    api_key="sk-LWN1lU2Qg4spKQPmQWg1kKHTX9tgNSY2qhgAfsZM9wH1Re9u",
+    base_url=os.environ["KK_OPENAI_BASE_URL"],
+    api_key=os.environ["KK_OPENAI_API_KEY"],
 )
 set_default_openai_client(openaiClient)
 set_default_openai_api("chat_completions")
