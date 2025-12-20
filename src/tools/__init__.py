@@ -4,6 +4,8 @@ from .write_file_tool import write_file
 from .edit_file_tool import edit_file
 from .search_tool import grep, glob
 from .think import think
+from .todo_list import todo_list
+from .sub_agents import explore_agent
 
 __all__ = [
     "bash", 
@@ -11,5 +13,7 @@ __all__ = [
     "write_file",
     "edit_file",
     "grep", "glob",
-    "think"
+    "think",
+    "todo_list",
+    "explore_agent"
 ]

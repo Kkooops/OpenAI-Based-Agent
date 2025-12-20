@@ -68,7 +68,7 @@ async def cli(work_dir=None):
 
     agent = Agent(
         name="OAI-Based CodeAgent",
-        model="gemini-3-flash-preview",
+        model="mimo-v2-flash",
         instructions=system_prompt,
         model_settings=ModelSettings(
             reasoning={"effort": "low"},
@@ -80,7 +80,9 @@ async def cli(work_dir=None):
             write_file,
             edit_file,
             grep, glob,
-            think
+            think,
+            todo_list,
+            explore_agent
         ]
     )
     import sys
