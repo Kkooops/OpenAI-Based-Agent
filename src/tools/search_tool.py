@@ -17,8 +17,6 @@ _DEFAULT_EXCLUDE_DIRS = {
     "venv",
     "__pycache__",
     "node_modules",
-    "dist",
-    "build",
     ".mypy_cache",
     ".pytest_cache",
 }
@@ -367,11 +365,16 @@ async def glob(
     pattern_norm = pattern.strip().replace("\\", "/")
     # 如果 pattern 不包含路径分隔符，使用递归匹配（更符合“按文件名查找”的直觉）。
     # 如果包含路径分隔符，则按相对 root_path 的路径模式匹配（例如 src/**/*.jsx）。
-    iterator = root_path.glob(pattern_norm) if "/" in pattern_norm else root_path.rglob(pattern_norm)
+    if "/" in pattern_norm:
+        iterator = root_path.glob(pattern_norm)
+    else:
+        iterator = root_path.rglob(pattern_norm)
 
     for file_path in iterator:
         try:
-            if not file_path.is_file():
+            is_dir = file_path.is_dir()
+            is_file = file_path.is_file()
+            if not is_dir and not is_file:
                 continue
         except OSError:
             continue
@@ -394,4 +397,3 @@ async def glob(
         return f"No files matched under {root_path}."
     summary = f"Found {len(results)} files under {root_path}."
     return summary + "\n" + "\n".join(results)
-

@@ -1,3 +1,4 @@
+import argparse
 import asyncio
 import json
 import re
@@ -59,10 +60,17 @@ async def cli(work_dir=None):
 
     system_prompt = ""
     # 使用当前文件的绝对路径来定位 system_prompt.md，避免受执行目录影响
-    base_dir = Path(__file__).resolve().parent.parent  # 项目根目录
-    system_prompt_path = base_dir / "src" / "system_prompt.md"
-    with system_prompt_path.open('r', encoding='utf-8') as f:
-        system_prompt = f.read()
+    base_dir = Path(__file__).resolve().parent
+    system_prompt_path = base_dir / "system_prompt.md"
+    try:
+        with system_prompt_path.open('r', encoding='utf-8') as f:
+            system_prompt = f.read()
+    except FileNotFoundError:
+        print(
+            f"{ERROR_PREFIX} missing file: {system_prompt_path}\n"
+            "Create it based on README instructions, then rerun."
+        )
+        return
 
     system_prompt = system_prompt.replace('{work_dir}', str(work_dir))
 
@@ -184,5 +192,19 @@ async def cli(work_dir=None):
             print(f"\n{ERROR_PREFIX} {e}\n")
 
 
+def main():
+    parser = argparse.ArgumentParser(description="OpenAI-Based Agent CLI")
+    parser.add_argument(
+        "--work-dir",
+        dest="work_dir",
+        default=None,
+        help="Absolute or relative path to the target project directory",
+    )
+    args = parser.parse_args()
+
+    work_dir = Path(args.work_dir).expanduser().resolve() if args.work_dir else None
+    asyncio.run(cli(work_dir=work_dir))
+
+
 if __name__ == "__main__":
-    asyncio.run(cli())
+    main()
