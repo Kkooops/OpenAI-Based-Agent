@@ -10,6 +10,7 @@ from agents import (
     set_default_openai_api,
     RawResponsesStreamEvent,
     RunItemStreamEvent,
+    SQLiteSession
 )
 from openai import AsyncOpenAI
 from agents import set_tracing_disabled, ModelSettings
@@ -74,13 +75,16 @@ async def cli(work_dir=None):
 
     system_prompt = system_prompt.replace('{work_dir}', str(work_dir))
 
+    session = SQLiteSession("kk")
+
     agent = Agent(
         name="OAI-Based CodeAgent",
         model="mimo-v2-flash",
         instructions=system_prompt,
         model_settings=ModelSettings(
-            reasoning={"effort": "low"},
-            parallel_tool_calls=False
+            parallel_tool_calls=True,
+            temperature=0.3,
+            top_p=0.95
         ),
         tools=[
             bash,
@@ -110,10 +114,10 @@ async def cli(work_dir=None):
 
             user_input = user_input.rstrip("\n")
 
-            messages.append({
-                "role": "user",
-                "content": user_input
-            })
+            # messages.append({
+            #     "role": "user",
+            #     "content": user_input
+            # })
 
             # ② 调用模型
             print(f"\n{ASSISTANT_PREFIX} 正在思考，请稍候...\n")
@@ -121,7 +125,7 @@ async def cli(work_dir=None):
             # ③ 美化后的模型输出
             print(f"{ASSISTANT_PREFIX}:\n{Fore.GREEN}{'-' * 60}{Style.RESET_ALL}")
 
-            result = Runner.run_streamed(agent, messages, max_turns=80)
+            result = Runner.run_streamed(agent, user_input, session=session, max_turns=80)
 
             async for event in result.stream_events():
                 if isinstance(event, RawResponsesStreamEvent):
@@ -182,8 +186,8 @@ async def cli(work_dir=None):
 
             print(f"\n{Fore.GREEN}{'-' * 60}{Style.RESET_ALL}\n")
 
-            last_messages = result.to_input_list()
-            messages = last_messages
+            # last_messages = result.to_input_list()
+            # messages = last_messages
 
         except KeyboardInterrupt:
             print(f"\n{SYSTEM_PREFIX} 已退出对话，再见！")

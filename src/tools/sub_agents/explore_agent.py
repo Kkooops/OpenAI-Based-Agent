@@ -53,6 +53,7 @@ async def explore_agent(
         "Your goal is to quickly locate relevant files and key code, then provide a clear, concise conclusion."
         "If you need more context, use `grep` or `glob` to narrow the scope first, then `read_file` for deep reading."
         "**Important** You Must Not use `bash`, Beacause you **Only** have tools: read_file, grep, glob. Must Not use other tools !!!"
+        "You can run tools in parallel to make it faster."
         "Your final output should include: key file paths, relevant functions/locations, and a brief conclusion/next-step suggestion."
     )
 

@@ -42,12 +42,20 @@ def _read_from_file(file_path: str, start_line: int, limit: int | None) -> str:
                     formatted_lines.append(f"{current_line:>6}|{line.rstrip(chr(13)+chr(10))}")
                     current_line += 1
             else:
+                line = ""
                 for _ in range(limit):
                     line = fh.readline()
                     if line == "":
                         break
                     formatted_lines.append(f"{current_line:>6}|{line.rstrip(chr(13)+chr(10))}")
                     current_line += 1
+
+                if limit == 0 or line != "":
+                    has_more = fh.readline() != ""
+                    if has_more:
+                        formatted_lines.append(
+                            f"{'':>6}|... (more; continue at line {current_line})"
+                        )
 
             return "\n".join(formatted_lines)
     except OSError as exc:
